@@ -37,6 +37,5 @@
 # Subprojects
 subprojects/*
 
-!subprojects/fmt.wrap
-!subprojects/nlohmann_json.wrap
+!subprojects/.gitkeep
 

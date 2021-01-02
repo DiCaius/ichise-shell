@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+
+# Test Bench
+# wayfire
+
+# Subprojects
+subprojects/*
+
+!subprojects/fmt.wrap
+!subprojects/nlohmann_json.wrap
+

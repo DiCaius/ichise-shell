@@ -1,0 +1,4 @@
+[submodule "wayfire"]
+	path = wayfire
+	url = ssh://git@github.com/WayfireWM/wayfire.git
+	branch = 0.6.0

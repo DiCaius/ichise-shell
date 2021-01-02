@@ -1,0 +1,15 @@
+---
+BasedOnStyle: LLVM
+ColumnLimit: 100
+IndentWidth: 2
+---
+Language: Cpp
+BreakBeforeTernaryOperators: true
+ContinuationIndentWidth: 2
+DerivePointerAlignment: false
+IncludeBlocks: Regroup
+IndentPPDirectives: AfterHash
+NamespaceIndentation: All
+PointerAlignment: Left
+ ---
+

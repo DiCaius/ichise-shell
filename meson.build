@@ -13,7 +13,7 @@ project(
   ],
 )
 
-wayfire = dependeny('wayfire', required: true)
+wayfire = dependency('wayfire', required: true)
 
 add_project_arguments(['-DWLR_USE_UNSTABLE'], language: ['c', 'cpp'])
 add_project_arguments(['-DWAYFIRE_PLUGIN'], language: ['c', 'cpp'])

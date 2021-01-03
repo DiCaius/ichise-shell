@@ -11,5 +11,5 @@ IncludeBlocks: Regroup
 IndentPPDirectives: AfterHash
 NamespaceIndentation: All
 PointerAlignment: Left
- ---
+---
 

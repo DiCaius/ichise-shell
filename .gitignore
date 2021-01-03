@@ -31,11 +31,3 @@
 *.out
 *.app
 
-# Test Bench
-# wayfire
-
-# Subprojects
-subprojects/*
-
-!subprojects/.gitkeep
-

@@ -1,39 +1,37 @@
 with (import <nixpkgs> {});
 
-mkShell {
+clangStdenv.mkDerivation {
+  name = "ichise-shell-dev";
   buildInputs = [
+    alsaLib
     cairo
-    glm
+    doxygen
     freetype
-    libevdev
-    libdrm
-    libexecinfo
-    libinput
-    libjpeg
-    libpng
-    libGL
-    mesa
+    fmt
+    glm
+    gobject-introspection
     libcap
-    xorg.xcbutilerrors
-    xorg.xcbutilwm
-    libxml2
+    libdrm
+    libevdev
+    libexecinfo
+    libGL
+    libinput
+    libpulseaudio
     libxkbcommon
-    xwayland
-    wayland
-    wayland-protocols
+    libxml2
+    mesa
     meson
     ninja
-    doxygen
-    gtk3
-    gtkmm3
-    gobject-introspection
-    libpulseaudio
-    alsaLib
+    nlohmann_json
+    wayland
+    wayland-protocols
+    xorg.xcbutilerrors
+    xorg.xcbutilwm
+    xwayland
   ];
   nativeBuildInputs = [
-    pkg-config
-    clang
     cmake
+    pkg-config
   ];
   shellHook = ''
     export CC=clang

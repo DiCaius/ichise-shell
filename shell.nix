@@ -7,7 +7,6 @@ clangStdenv.mkDerivation {
     cairo
     doxygen
     freetype
-    fmt
     glm
     gobject-introspection
     libcap
@@ -22,7 +21,6 @@ clangStdenv.mkDerivation {
     mesa
     meson
     ninja
-    nlohmann_json
     wayland
     wayland-protocols
     xorg.xcbutilerrors

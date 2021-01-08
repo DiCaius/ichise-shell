@@ -26,6 +26,8 @@ message('\n'.join([
   '',
   '#----------------#',
   'Ichise Shell -> Wayfire Plugins @0@'.format(meson.project_version()),
+  '',
+  'with plugin - trigger: @0@'.format(get_option('with_plugin_trigger')),
   '#----------------#',
   '',
 ]))

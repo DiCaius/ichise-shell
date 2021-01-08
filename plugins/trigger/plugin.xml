@@ -7,7 +7,7 @@
     </_long>
     <category>Control</category>
     <group>
-      <_short>Triggers</_short>
+      <_short>Trigger</_short>
       <_long>Defines the trigger bindings.</_long>
       <option name="trigger" type="dynamic_list">
         <_short>Trigger</_short>

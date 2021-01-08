@@ -1,0 +1,25 @@
+# RULES
+trigger := binding , signal_or_command , eof;
+binding := lp , input , rp , arrow;
+signal_or_command := [ signal ] , command;
+signal := pi , input , pi , arrow;
+command := payload , [ mode ];
+payload := lc , input , rc , arrow;
+mode := lb , input , rb;
+input := { char , escape | char };
+
+# TOKENS
+arrow := "-" , ">";
+escape := "\";
+lb := "[";
+lc := "{";
+lp := "(";
+pi := "|";
+rb := "]";
+rc := "}";
+rp := ")";
+
+# GENERAL
+char := (any character);
+eof := (end of file);
+

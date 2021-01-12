@@ -1,5 +1,12 @@
+#include "../signals.hpp"
 #include "trigger.hpp"
 
+#include <exception>
+#include <functional>
+#include <google/protobuf/util/json_util.h>
+#include <memory>
+#include <string>
+#include <variant>
 #include <wayfire/core.hpp>
 #include <wayfire/output.hpp>
 #include <wayfire/plugin.hpp>
@@ -28,7 +35,8 @@ namespace ichise::plugin::trigger {
 
     void load_bindings() {
       LOGD("load_bindings -> Getting trigger config");
-      std::shared_ptr<wf::config::section_t> section = wf::get_core().config.get_section("trigger");
+      std::shared_ptr<wf::config::section_t> section =
+        wf::get_core().config.get_section("ichise-trigger");
       wf::config::section_t::option_list_t config_options = section->get_registered_options();
 
       LOGD("load_bindings -> Loading triggers");
@@ -47,19 +55,35 @@ namespace ichise::plugin::trigger {
             std::unique_ptr<std::stringstream> input =
               std::make_unique<std::stringstream>(option->get_value_str());
 
-            std::shared_ptr<const Trigger> trigger = parser(input);
+            std::variant<std::shared_ptr<CommandTrigger>,
+                         std::shared_ptr<SignalTrigger>>
+              trigger;
+
+            if (option_name.find("command_") == 0) {
+              trigger = parser(input, E_TRIGGER_TYPE::COMMAND);
+            } else if (option_name.find("signal_") == 0) {
+              trigger = parser(input, E_TRIGGER_TYPE::SIGNAL);
+            } else {
+              throw std::runtime_error("Invalid trigger type.");
+            }
 
             bindings[index] = std::bind(std::mem_fn(&Plugin::trigger_binding), this, trigger,
                                         std::placeholders::_1, std::placeholders::_2);
 
-            output->add_activator(
-              wf::create_option(
-                wf::option_type::from_string<wf::activatorbinding_t>(trigger->binding).value()),
-              &bindings[index]);
+            std::visit(
+              [&](auto t) {
+                output->add_activator(
+                  wf::create_option(
+                    wf::option_type::from_string<wf::activatorbinding_t>(t->binding).value()),
+                  &bindings[index]);
+              },
+              trigger);
           } catch (const InvalidSyntaxException exception) {
             LOGE(option_name, "(InvalidSyntaxException): ", exception.what());
           } catch (const LexicalException exception) {
             LOGE(option_name, "(LexicalException): ", exception.what());
+          } catch (const std::exception& exception) {
+            LOGE(option_name, "(runtime_error): ", exception.what());
           }
         }
       }
@@ -67,16 +91,21 @@ namespace ichise::plugin::trigger {
       LOGD("load_bindings -> Done");
     }
 
-    bool trigger_binding(std::shared_ptr<const Trigger>& trigger, wf::activator_source_t source,
-                         uint32_t value) {
+    bool trigger_binding(std::variant<std::shared_ptr<CommandTrigger>,
+                                      std::shared_ptr<SignalTrigger>>& trigger,
+                         wf::activator_source_t source, uint32_t value) {
       LOGD("trigger_binding -> Matching binding type");
 
-      if (trigger->signal == std::nullopt) {
+      if (trigger.index() == 0) {
         LOGD("trigger_binding -> Running command");
-        wf::get_core().run(trigger->payload.c_str());
+        wf::get_core().run(std::get<0>(trigger)->payload.c_str());
+      } else {
+        LOGD("trigger_binding -> Parsing payload");
+        HelloSignal* data = new HelloSignal();
 
-        LOGD("trigger_binding -> Deactivating plugin");
-        output->deactivate_plugin(grab_interface);
+        google::protobuf::util::JsonStringToMessage(std::get<1>(trigger)->payload, data->message.get());
+
+        wf::get_core().emit_signal(std::get<1>(trigger)->signal, data);
       }
 
       LOGD("trigger_binding -> Done");
@@ -86,7 +115,7 @@ namespace ichise::plugin::trigger {
   public:
     void init() override {
       LOGD("init -> Defining interface");
-      grab_interface->name = "trigger";
+      grab_interface->name = "ichise-trigger";
       grab_interface->capabilities = wf::CAPABILITY_GRAB_INPUT;
 
       LOGD("init -> Loading bindings");

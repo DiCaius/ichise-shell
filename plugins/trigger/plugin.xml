@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <wayfire>
-  <plugin name="trigger">
+  <plugin name="ichise-trigger">
     <_short>Trigger</_short>
     <_long>
       This plugin triggers the execution of a command or signal on a binding activation (key, button, or touch).
@@ -9,7 +9,7 @@
     <group>
       <_short>Trigger</_short>
       <_long>Defines the trigger bindings.</_long>
-      <option name="trigger" type="dynamic_list">
+      <option name="ichise-trigger" type="dynamic_list">
         <_short>Trigger</_short>
         <_long>Defines the trigger binding.</_long>
         <type>string</type>

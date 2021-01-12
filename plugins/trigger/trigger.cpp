@@ -4,12 +4,43 @@ namespace ichise::plugin::trigger {
   InvalidSyntaxException::InvalidSyntaxException(const std::string& expected,
                                                  const std::string& received)
       : message("Expected `" + expected + "` but received `" + received + "`.") {}
-  InvalidSyntaxException::InvalidSyntaxException(const E_TOKEN& expected, const E_TOKEN& received)
-      : message(std::string("Expected `") +
-                static_cast<std::underlying_type<E_TOKEN>::type>(expected) + "` but received `" +
-                static_cast<std::underlying_type<E_TOKEN>::type>(received) + "`.") {}
+  InvalidSyntaxException::InvalidSyntaxException(const E_TOKEN& expected, const E_TOKEN& received) {
+    this->message = "Expected `";
+
+    switch (expected) {
+    case E_TOKEN::ARROW:
+      this->message += "ARROW OPERATOR";
+      break;
+    case E_TOKEN::INPUT:
+      this->message += "INPUT";
+      break;
+    default:
+      this->message += static_cast<std::underlying_type<E_TOKEN>::type>(expected);
+      break;
+    }
+
+    this->message += "` but received `";
+
+    switch (received) {
+    case E_TOKEN::ARROW:
+      this->message += "ARROW OPERATOR";
+      break;
+    case E_TOKEN::INPUT:
+      this->message += "INPUT";
+      break;
+    default:
+      this->message += static_cast<std::underlying_type<E_TOKEN>::type>(received);
+      break;
+    }
+
+    this->message += "`.";
+  }
 
   const char* InvalidSyntaxException::what() const noexcept { return message.c_str(); }
+
+  LexicalException::LexicalException(const std::string& message) : message(message) {}
+
+  const char* LexicalException::what() const noexcept { return message.c_str(); }
 
   Lexer::Lexer(std::unique_ptr<std::stringstream>& input) : escape(false), input(input) {
     advance();
@@ -33,15 +64,16 @@ namespace ichise::plugin::trigger {
     char input_char;
     bool is_input = false;
 
-    while ((*input) >> input_char) {
+    while ((*input) >> std::noskipws >> input_char) {
       if (escape) {
-        buffer << input_char;
+        buffer << std::noskipws << input_char;
         escape = false;
       } else {
         switch (input_char) {
         case '-':
           char lookahead;
           (*input) >> lookahead;
+
           if (lookahead == '>') {
             if (is_input) {
               input->putback(lookahead);
@@ -78,6 +110,7 @@ namespace ichise::plugin::trigger {
           break;
         default:
           buffer << input_char;
+
           if (!is_input) {
             is_input = true;
           }
@@ -91,17 +124,22 @@ namespace ichise::plugin::trigger {
 
   std::string Lexer::get_token_text() { return buffer.str(); }
 
-  LexicalException::LexicalException(const std::string& message) : message(message) {}
-
-  const char* LexicalException::what() const noexcept { return message.c_str(); }
-
-  std::shared_ptr<const Trigger> Parser::operator()(std::unique_ptr<std::stringstream>& input) {
+  std::variant<std::shared_ptr<CommandTrigger>, std::shared_ptr<SignalTrigger>> Parser::
+  operator()(std::unique_ptr<std::stringstream>& input, E_TRIGGER_TYPE type) {
     lexer = std::make_unique<Lexer>(input);
-    result = std::make_unique<Trigger>();
+
+    switch (type) {
+    case E_TRIGGER_TYPE::COMMAND:
+      result = std::make_shared<CommandTrigger>();
+      break;
+    case E_TRIGGER_TYPE::SIGNAL:
+      result = std::make_shared<SignalTrigger>();
+      break;
+    }
 
     trigger();
 
-    return std::move(result);
+    return result;
   }
 
   void Parser::arrow() {
@@ -117,7 +155,7 @@ namespace ichise::plugin::trigger {
     arrow();
   }
 
-  void Parser::command() {
+  void Parser::command_trigger() {
     payload();
     mode();
   }
@@ -145,25 +183,34 @@ namespace ichise::plugin::trigger {
 
     switch (section) {
     case E_TRIGGER_SECTION::BINDING:
-      result->binding = lexer->get_current_token_text();
+      std::visit([&](auto v) { v->binding = lexer->get_current_token_text(); }, result);
       break;
     case E_TRIGGER_SECTION::MODE:
-      if (lexer->get_current_token_text() == "ALWAYS") {
-        result->mode = E_TRIGGER_MODE::ALWAYS;
-      } else if (lexer->get_current_token_text() == "NORMAL") {
-        result->mode = E_TRIGGER_MODE::NORMAL;
-      } else if (lexer->get_current_token_text() == "REPEAT") {
-        result->mode = E_TRIGGER_MODE::REPEAT;
-      } else {
-        throw InvalidSyntaxException("ALWAYS` or `NORMAL` or `REPEAT",
-                                     lexer->get_current_token_text());
-      }
+      std::visit(
+        [&](auto v) {
+          if (lexer->get_current_token_text() == "ALWAYS") {
+            v->mode = E_TRIGGER_MODE::ALWAYS;
+          } else if (lexer->get_current_token_text() == "NORMAL") {
+            v->mode = E_TRIGGER_MODE::NORMAL;
+          } else if (lexer->get_current_token_text() == "REPEAT") {
+            v->mode = E_TRIGGER_MODE::REPEAT;
+          } else {
+            throw InvalidSyntaxException("ALWAYS` or `NORMAL` or `REPEAT", lexer->get_current_token_text());
+          }
+        },
+        result);
       break;
     case E_TRIGGER_SECTION::PAYLOAD:
-      result->payload = lexer->get_current_token_text();
+      if (result.index() == 0) {
+        std::get<0>(result)->payload = lexer->get_current_token_text();
+      } else {
+        std::get<1>(result)->payload = "{" + lexer->get_current_token_text() + "}";
+      }
       break;
     case E_TRIGGER_SECTION::SIGNAL:
-      result->signal = lexer->get_current_token_text();
+      if (result.index() == 1) {
+        std::get<1>(result)->signal = lexer->get_current_token_text();
+      }
       break;
     }
 
@@ -172,30 +219,33 @@ namespace ichise::plugin::trigger {
 
   void Parser::mode() {
     if (lexer->get_current_token() == E_TOKEN::ARROW) {
-      arrow();
+      lexer->advance();
       extract_section(E_TOKEN::LB, E_TOKEN::RB, E_TRIGGER_SECTION::MODE);
     } else {
-      result->mode = E_TRIGGER_MODE::NORMAL;
+      std::visit([&](auto v) { v->mode = E_TRIGGER_MODE::NORMAL; }, result);
     }
   }
 
   void Parser::payload() { extract_section(E_TOKEN::LC, E_TOKEN::RC, E_TRIGGER_SECTION::PAYLOAD); }
 
   void Parser::signal() {
-    if (lexer->get_current_token() == E_TOKEN::PI) {
-      extract_section(E_TOKEN::PI, E_TOKEN::PI, E_TRIGGER_SECTION::SIGNAL);
-      arrow();
-    }
+    extract_section(E_TOKEN::PI, E_TOKEN::PI, E_TRIGGER_SECTION::SIGNAL);
+    arrow();
   }
 
-  void Parser::signal_or_command() {
+  void Parser::signal_trigger() {
     signal();
-    command();
+    command_trigger();
   }
 
   void Parser::trigger() {
     binding();
-    signal_or_command();
+
+    if (result.index()) {
+      signal_trigger();
+    } else {
+      command_trigger();
+    }
   }
 } // namespace ichise::plugin::trigger
 

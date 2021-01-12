@@ -21,6 +21,7 @@ clangStdenv.mkDerivation {
     mesa
     meson
     ninja
+    protobuf
     wayland
     wayland-protocols
     xorg.xcbutilerrors

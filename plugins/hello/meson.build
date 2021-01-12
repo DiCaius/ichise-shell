@@ -1,9 +1,8 @@
-trigger = shared_module(
-  'ichise-trigger',
-  ['plugin.cpp', 'trigger.cpp'],
+hello = shared_module(
+  'ichise-hello',
+  ['plugin.cpp'],
   dependencies: [
     hello_message,
-    protobuf,
     wfconfig,
     wlroots,
   ],
@@ -11,9 +10,9 @@ trigger = shared_module(
   install_dir: plugindir,
 )
 
-trigger_metadata = install_data(
+hello_metadata = install_data(
   'plugin.xml',
   install_dir: metadatadir,
-  rename: ['ichise-trigger.xml'],
+  rename: ['ichise-hello.xml'],
 )
 

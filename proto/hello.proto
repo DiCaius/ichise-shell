@@ -1,0 +1,7 @@
+syntax = "proto2";
+
+message Hello {
+  optional string greeting = 1 [default = "Hello"];
+  optional string recipient = 2 [default = "World"];
+}
+

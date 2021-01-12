@@ -2,12 +2,12 @@
 
 #include <exception>
 #include <memory>
-#include <optional>
 #include <sstream>
 #include <string>
+#include <variant>
 
 namespace ichise::plugin::trigger {
-  enum class E_TOKEN : char {
+  enum class E_TOKEN : int {
     ARROW = '>',
     ESCAPE = '\\',
     INPUT = '.',
@@ -33,6 +33,11 @@ namespace ichise::plugin::trigger {
     SIGNAL,
   };
 
+  enum class E_TRIGGER_TYPE : int {
+    COMMAND,
+    SIGNAL,
+  };
+
   class InvalidSyntaxException : public std::exception {
   private:
     std::string message;
@@ -54,12 +59,16 @@ namespace ichise::plugin::trigger {
     virtual const char* what() const noexcept;
   };
 
-  class Trigger {
+  class CommandTrigger {
   public:
     std::string binding;
     E_TRIGGER_MODE mode;
     std::string payload;
-    std::optional<std::string> signal;
+  };
+
+  class SignalTrigger : public CommandTrigger {
+  public:
+    std::string signal;
   };
 
   class Lexer {
@@ -84,22 +93,23 @@ namespace ichise::plugin::trigger {
   class Parser {
   private:
     std::unique_ptr<Lexer> lexer;
-    std::unique_ptr<Trigger> result;
+    std::variant<std::shared_ptr<CommandTrigger>, std::shared_ptr<SignalTrigger>> result;
 
     void arrow();
     void binding();
-    void command();
+    void command_trigger();
     void extract_section(const E_TOKEN& start_token, const E_TOKEN& end_token,
                          const E_TRIGGER_SECTION& section);
     void input(const E_TRIGGER_SECTION& section);
     void mode();
     void payload();
     void signal();
-    void signal_or_command();
+    void signal_trigger();
     void trigger();
 
   public:
-    std::shared_ptr<const Trigger> operator()(std::unique_ptr<std::stringstream>& input);
+    std::variant<std::shared_ptr<CommandTrigger>, std::shared_ptr<SignalTrigger>>
+    operator()(std::unique_ptr<std::stringstream>& input, E_TRIGGER_TYPE type);
   };
 } // namespace ichise::plugin::trigger
 

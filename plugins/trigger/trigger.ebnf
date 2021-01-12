@@ -1,9 +1,9 @@
 # RULES
-trigger := binding , signal_or_command , eof;
+trigger := binding , command_trigger | signal_trigger , eof;
 binding := lp , input , rp , arrow;
-signal_or_command := [ signal ] , command;
+signal_trigger := signal , command_trigger;
 signal := pi , input , pi , arrow;
-command := payload , [ mode ];
+command_trigger := payload , [ mode ];
 payload := lc , input , rc , arrow;
 mode := lb , input , rb;
 input := { char , escape | char };

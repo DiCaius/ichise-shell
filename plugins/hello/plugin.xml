@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<wayfire>
+  <plugin name="ichise-hello">
+    <_short>Hello</_short>
+    <_long>Test plugin.</_long>
+    <category>Test</category>
+  </plugin>
+</wayfire>
+

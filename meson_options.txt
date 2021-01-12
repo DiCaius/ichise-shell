@@ -1,4 +1,10 @@
 option(
+  'with_plugin_hello',
+  type: 'boolean',
+  value: true,
+  description: 'Install Ichise Shell with the hello plugin.',
+)
+option(
   'with_plugin_trigger',
   type: 'boolean',
   value: true,
